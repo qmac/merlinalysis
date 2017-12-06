@@ -50,7 +50,6 @@ def extract_audio_semantics(stims):
     res = to_long_format(res)
     res.rename(columns={'value': 'modulation', 'feature': 'trial_type'}, inplace=True)
     res.to_csv('events/audio_semantic_events.csv')
-    return res
 
 
 def extract_image_labels(video, save_frames=False):
@@ -67,35 +66,34 @@ def extract_image_labels(video, save_frames=False):
     # Use a Vision API to extract object labels
     ext = GoogleVisionAPILabelExtractor(max_results=10)
     results = ext.transform(sampled_video)
-    df = merge_results(results, metadata=False)
+    res = merge_results(results, metadata=False)
 
     # Clean and write out data
-    df = df.fillna(0)
-    df['GoogleVisionAPILabelExtractor'] = np.round(df['GoogleVisionAPILabelExtractor'])
+    res = res.fillna(0)
+    res['GoogleVisionAPILabelExtractor'] = np.round(res['GoogleVisionAPILabelExtractor'])
     new_cols = []
-    for col in df.columns.values:
+    for col in res.columns.values:
         if col[0].startswith('Google'):
             new_cols.append(col[1].encode('utf-8'))
         else:
             new_cols.append(col[0])
-    df.columns = new_cols
-    df.to_csv('events/raw_visual_events.csv')
-    return df
+    res.columns = new_cols
+    res.to_csv('events/raw_visual_events.csv')
 
 
 def extract_visual_objects(visual_events):
-    df = pd.DataFrame.from_csv(visual_events)
-    df = to_long_format(df)
-    df.rename(columns={'value': 'modulation', 'feature': 'trial_type'}, inplace=True)
-    df.to_csv('events/visual_object_events.csv')
+    res = pd.DataFrame.from_csv(visual_events)
+    res = to_long_format(res)
+    res.rename(columns={'value': 'modulation', 'feature': 'trial_type'}, inplace=True)
+    res.to_csv('events/visual_object_events.csv')
 
 
 def extract_visual_semantics(visual_events):
-    df = pd.DataFrame.from_csv(visual_events)
-    onsets = df['onset']
-    durations = df['duration']
-    df = df.drop(['onset', 'duration'], axis=1)
-    words = df.apply(lambda x: list(df.columns[x.values.astype('bool')]), axis=1)
+    res = pd.DataFrame.from_csv(visual_events)
+    onsets = res['onset']
+    durations = res['duration']
+    res = res.drop(['onset', 'duration'], axis=1)
+    words = res.apply(lambda x: list(res.columns[x.values.astype('bool')]), axis=1)
 
     texts = []
     for tags, o, d in zip(words, onsets, durations):
@@ -110,14 +108,13 @@ def extract_visual_semantics(visual_events):
     res = to_long_format(res)
     res.rename(columns={'value': 'modulation', 'feature': 'trial_type'}, inplace=True)
     res.to_csv('events/visual_semantic_events.csv')
-    return res
 
 
 def extract_audio_energy(video):
     aud = VideoToAudioConverter().transform(video)
     frame_length = int(aud.sampling_rate*TR)
     ext = RMSEExtractor(frame_length=frame_length, hop_length=frame_length, center=False)
-    res = ext.transform(aud).to_df(metadata=False)
+    res = ext.transform(aud).to_res(metadata=False)
     res = to_long_format(res)
     res['onset'] += TR
     res.rename(columns={'value': 'modulation', 'feature': 'trial_type'}, inplace=True)
@@ -143,19 +140,19 @@ def extract_faces(video):
     # Use a Vision API to extract object labels
     ext = GoogleVisionAPIFaceExtractor()
     results = ext.transform(sampled_video)
-    df = merge_results(results, metadata=False, flatten_columns=True)
+    res = merge_results(results, metadata=False, flatten_columns=True)
 
     # Clean and write out data
-    df = df.fillna(0)
-    df['face'] = df['GoogleVisionAPIFaceExtractor_face1_face_detectionConfidence']
+    res = res.fillna(0)
+    res['face'] = res['GoogleVisionAPIFaceExtractor_face1_face_detectionConfidence']
     cols = []
-    for col in df.columns:
+    for col in res.columns:
         if col.startswith('Google'):
             cols.append(col)
-    df = df.drop(cols, axis=1)
-    df = to_long_format(df)
-    df.rename(columns={'value': 'modulation', 'feature': 'trial_type'}, inplace=True)
-    df.to_csv('events/face_events.csv')
+    res = res.drop(cols, axis=1)
+    res = to_long_format(res)
+    res.rename(columns={'value': 'modulation', 'feature': 'trial_type'}, inplace=True)
+    res.to_csv('events/face_events.csv')
 
 
 def extract_speech():
@@ -186,5 +183,4 @@ if __name__ == '__main__':
     # extract_audio_energy(video)
     # extract_speech()
     # extract_brightness(video)
-    extract_faces(video)
-    print('Done with controls extraction')
+    # extract_faces(video)

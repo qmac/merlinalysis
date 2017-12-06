@@ -9,7 +9,7 @@ from nibabel import Nifti1Image
 from nilearn._utils.niimg_conversions import check_niimg
 from nistats.design_matrix import make_design_matrix
 
-from ridge.ridge import ridge_corr
+from ridge.ridge import bootstrap_ridge
 from ridge.utils import zscore
 
 TR = 1.5
@@ -47,7 +47,13 @@ def partition_data(X, Y):
 def compute_rsquared(X, Y):
     alphas = np.logspace(-1, 3, 20)
     X_train, X_test, Y_train, Y_test = partition_data(X, Y)
-    return ridge_corr(X_train, X_test, Y_train, Y_test, alphas, use_corr=False)
+    wt, corrs, _, _, _ = bootstrap_ridge(X_train, Y_train, X_test, Y_test,
+                                         alphas=alphas,
+                                         nboots=5,
+                                         chunklen=15,
+                                         nchunks=10,
+                                         use_corr=False)
+    return wt, corrs
 
 
 def run_analysis(image_file, event_file, output_file, plot=False):
@@ -72,36 +78,25 @@ def run_analysis(image_file, event_file, output_file, plot=False):
     print('Reshaped data matrix: ' + str(Y.shape))
 
     # Fit and compute R squareds
-    res = compute_rsquared(X, Y)
-    r_squared = res[0]
-    r_squared = np.array(r_squared)
+    weights, r_squared = compute_rsquared(X, Y)
     print('R squared matrix shape: ' + str(r_squared.shape))
 
-    # Plot some random voxel results
-    if plot:
-        plt.plot(r_squared[:, np.random.randint(110592, size=10)])
-        plt.show()
-
     # Output results
-    best = np.reshape(np.argmax(r_squared, axis=0), (64, 64, 27, 1))[14, 23, 10]
-    best = res[1][int(best)]
-    best = np.reshape(best.T, (64, 64, 27, 90))
-    _, xt, _, yt = partition_data(X, Y)
-    yt = np.reshape(yt.T, (64, 64, 27, 90))
-    good_one = yt[14, 23, 10]
-    good_one_p = best[14, 23, 10]
-    resid = (good_one - good_one_p).var()
-    print 1 - (resid / good_one.var())
-    # plt.plot(xt[:, 0], label='speech')
-    plt.plot(good_one, label='actual')
-    plt.plot(good_one_p, label='pred')
-    plt.legend()
-    plt.show()
-    r_squared = np.max(r_squared, axis=0)
     r_squared[r_squared == 1.0] = 0.0
     r_squared = np.reshape(r_squared, (64, 64, 27, 1))
     r_squared_img = Nifti1Image(r_squared, affine=img.affine)
     r_squared_img.to_filename(output_file)
+
+    if plot:
+        _, xt, _, yt = partition_data(X, Y)
+        voxel_actual = np.reshape(yt.T, (64, 64, 27, 90))[14, 23, 10]
+        voxel_pred = np.reshape(np.dot(xt, weights).T, (64, 64, 27, 90))[14, 23, 10]
+        # plt.plot(xt[:, 0], label='speech')
+        plt.plot(voxel_actual, label='actual')
+        plt.plot(voxel_pred, label='pred')
+        print(r_squared[14, 23, 10])
+        plt.legend()
+        plt.show()
 
 
 if __name__ == '__main__':

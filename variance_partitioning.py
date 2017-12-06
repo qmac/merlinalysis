@@ -12,7 +12,6 @@ def variance_partition(d1, d2, comb):
 
 
 if __name__ == '__main__':
-    img = check_niimg(sys.argv[1], ensure_ndim=4)
     data1 = check_niimg(sys.argv[1], ensure_ndim=4).get_data()
     data2 = check_niimg(sys.argv[2], ensure_ndim=4).get_data()
     data_combined = check_niimg(sys.argv[3], ensure_ndim=4).get_data()
