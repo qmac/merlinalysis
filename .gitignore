@@ -1,0 +1,10 @@
+*.nii.gz
+*.sh
+*.png
+events/
+data/
+stims/
+ridge/
+results/
+results-21/
+results-33/
