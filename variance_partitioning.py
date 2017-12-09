@@ -1,18 +1,23 @@
 import sys
+import numpy as np
 
 from nibabel import Nifti1Image
 from nilearn._utils.niimg_conversions import check_niimg
 
 
 def variance_partition(d1, d2, comb):
-    only_d1 = comb - d2
-    only_d2 = comb - d1
-    intersection = d1 - only_d1
+    r_squared1 = np.sign(d1) * np.power(d1, 2)
+    r_squared2 = np.sign(d1) * np.power(d2, 2)
+    r_squared_comb = np.sign(d1) * np.power(comb, 2)
+    only_d1 = r_squared_comb - r_squared2
+    only_d2 = r_squared_comb - r_squared1
+    intersection = r_squared1 - only_d1
     return only_d1, only_d2, intersection
 
 
 if __name__ == '__main__':
-    data1 = check_niimg(sys.argv[1], ensure_ndim=4).get_data()
+    img = check_niimg(sys.argv[1], ensure_ndim=4)
+    data1 = img.get_data()
     data2 = check_niimg(sys.argv[2], ensure_ndim=4).get_data()
     data_combined = check_niimg(sys.argv[3], ensure_ndim=4).get_data()
     ex_data1, ex_data2, intersection = variance_partition(data1, data2, data_combined)
