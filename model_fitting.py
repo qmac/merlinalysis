@@ -11,8 +11,13 @@ from nistats.design_matrix import make_design_matrix
 
 from ridge.ridge import bootstrap_ridge
 from ridge.utils import zscore
+from detrend_sgolay import sgolay_filter_volume
 
 TR = 1.5
+
+
+def detrend_data(Y):
+    return sgolay_filter_volume(Y, filtlen=181, degree=4)
 
 
 def get_design_matrix(event_file, n_scans):
@@ -62,6 +67,7 @@ def run_analysis(image_file, event_file, output_file, plot=False):
     img_data = img.get_data()
     img_data = img_data[:, :, :, 17:]
     img_data = img_data[:, :, :, 27:]
+    img_data = img_data[:, :, :, :975]
     print('Data matrix shape: ' + str(img_data.shape))
 
     # Get design matrix from nistats
@@ -75,6 +81,7 @@ def run_analysis(image_file, event_file, output_file, plot=False):
         plt.show()
     Y = np.reshape(img_data, (110592, img_data.shape[3]))
     Y = zscore(Y).T
+    Y = detrend_data(Y)
     print('Reshaped data matrix: ' + str(Y.shape))
 
     # Fit and compute R squareds
