@@ -17,7 +17,7 @@ TR = 1.5
 
 
 def detrend_data(Y):
-    return sgolay_filter_volume(Y, filtlen=181, degree=4)
+    return sgolay_filter_volume(Y, filtlen=181, degree=3)
 
 
 def get_design_matrix(event_file, n_scans):
@@ -101,6 +101,8 @@ def run_analysis(image_file, event_file, output_file, plot=False):
         # plt.plot(xt[:, 0], label='speech')
         plt.plot(voxel_actual, label='actual')
         plt.plot(voxel_pred, label='pred')
+        print(list(dm.columns))
+        print('Weights for auditory cortex voxel: ' + str(list(np.reshape(weights.T, (64, 64, 27, 1540))[14, 23, 10])))
         print(r_squared[14, 23, 10])
         plt.legend()
         plt.show()

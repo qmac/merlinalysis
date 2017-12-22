@@ -1,10 +1,10 @@
 *.nii.gz
 *.sh
 *.png
+*.pyc
 events/
 data/
 stims/
 ridge/
-results/
-results-21/
-results-33/
+results*/
+diagnostics/
