@@ -96,14 +96,16 @@ def run_analysis(image_file, event_file, output_file, plot=False):
 
     if plot:
         _, xt, _, yt = partition_data(X, Y)
-        voxel_actual = np.reshape(yt.T, (64, 64, 27, 90))[14, 23, 10]
-        voxel_pred = np.reshape(np.dot(xt, weights).T, (64, 64, 27, 90))[14, 23, 10]
-        # plt.plot(xt[:, 0], label='speech')
+        aud_vox_xyz = (14, 23, 10)
+        aud_vox_idx = np.unravel_index(np.ravel_multi_index(aud_vox_xyz, (64, 64, 27)), (110592))
+        voxel_actual = yt.T[aud_vox_idx]
+        voxel_pred = np.dot(xt, weights).T[aud_vox_idx]
+        plt.plot(xt[:, 0], label='speech')
         plt.plot(voxel_actual, label='actual')
         plt.plot(voxel_pred, label='pred')
         print(list(dm.columns))
-        print('Weights for auditory cortex voxel: ' + str(list(np.reshape(weights.T, (64, 64, 27, 1540))[14, 23, 10])))
-        print(r_squared[14, 23, 10])
+        print('Weights for auditory cortex voxel: ' + str(weights.T[aud_vox_idx]))
+        print(r_squared[aud_vox_xyz])
         plt.legend()
         plt.show()
 
