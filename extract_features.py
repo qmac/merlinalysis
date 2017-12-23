@@ -32,7 +32,7 @@ def parse_p2fa(transcript_path):
             if start_parse and line.startswith('\t\t\ti'):
                 onset = float(all_lines[i+1].split()[-1])
                 duration = float(all_lines[i+2].split()[-1]) - onset
-                text = str(all_lines[i+3].split()[-1])[1:-1]
+                text = str(all_lines[i+3].split()[-1])[1:-1].lower()
                 if not (text == 'sp'):
                     texts.append(TextStim(text=text, onset=onset, duration=duration))
 
