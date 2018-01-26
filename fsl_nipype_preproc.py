@@ -6,9 +6,11 @@ from nipype.interfaces import fsl as fsl
 from nipype.interfaces import utility as util
 from nipype.interfaces.io import DataSink
 from nipype.pipeline import engine as pe
+from nipype import LooseVersion
 
 
 TR = 1.5
+highpass_operand = lambda x: '-bptf %.10f -1' % x
 
 
 def getthreshop(thresh):
@@ -59,6 +61,11 @@ def getmeanscale(medianvals):
 
 def create_preproc(whichvol='middle',
                    whichrun=0):
+    version = 0
+    if fsl.Info.version() and \
+            LooseVersion(fsl.Info.version()) > LooseVersion('5.0.6'):
+        version = 507
+
     """Create a FEAT preprocessing workflow with registration to one volume of the first run
     """
 
@@ -68,7 +75,7 @@ def create_preproc(whichvol='middle',
     Set up a node to define all inputs required for the preprocessing workflow
     """
     inputnode = pe.Node(
-        interface=util.IdentityInterface(fields=['func']), name='inputspec')
+        interface=util.IdentityInterface(fields=['func', 'highpass']), name='inputspec')
 
     """
     Set up a node to define outputs for the preprocessing workflow
@@ -76,7 +83,7 @@ def create_preproc(whichvol='middle',
     outputnode = pe.Node(
         interface=util.IdentityInterface(fields=[
             'reference', 'motion_parameters', 'realigned_files',
-            'motion_plots', 'mask', 'mean'
+            'motion_plots', 'mask', 'mean', 'highpassed_files'
         ]),
         name='outputspec')
 
@@ -235,9 +242,42 @@ def create_preproc(whichvol='middle',
         iterfield=['in_file'],
         name='meanfunc3')
 
+    """
+    Do highpass temporal filtering
+    """
     featpreproc.connect(meanscale, ('out_file', pickrun, whichrun), meanfunc3,
                         'in_file')
     featpreproc.connect(meanfunc3, 'out_file', outputnode, 'mean')
+
+    highpass = pe.MapNode(
+        interface=fsl.ImageMaths(suffix='_tempfilt'),
+        iterfield=['in_file'],
+        name='highpass')
+    featpreproc.connect(inputnode, ('highpass', highpass_operand),
+                        highpass, 'op_string')
+    featpreproc.connect(meanscale, 'out_file', highpass, 'in_file')
+
+    if version < 507:
+        featpreproc.connect(highpass, 'out_file', outputnode,
+                            'highpassed_files')
+    else:
+        """
+        Add back the mean removed by the highpass filter operation as of FSL 5.0.7
+        """
+        meanfunc4 = pe.MapNode(
+            interface=fsl.ImageMaths(op_string='-Tmean', suffix='_mean'),
+            iterfield=['in_file'],
+            name='meanfunc4')
+
+        featpreproc.connect(meanscale, 'out_file', meanfunc4, 'in_file')
+        addmean = pe.MapNode(
+            interface=fsl.BinaryMaths(operation='add'),
+            iterfield=['in_file', 'operand_file'],
+            name='addmean')
+        featpreproc.connect(highpass, 'out_file', addmean, 'in_file')
+        featpreproc.connect(meanfunc4, 'out_file', addmean, 'operand_file')
+        featpreproc.connect(addmean, 'out_file', outputnode,
+                            'highpassed_files')
 
     return featpreproc
 
@@ -246,6 +286,7 @@ if __name__ == '__main__':
     sub_id = sys.argv[1]
     preproc = create_preproc()
     preproc.inputs.inputspec.func = ['/Volumes/MyPassport/merlin/data/%s/func/%s_task-MerlinMovie_bold.nii.gz' % (sub_id, sub_id)]
+    preproc.inputs.inputspec.highpass = 120 / (2.0 * TR)
     preproc.base_dir = '/Volumes/MyPassport/merlin/dump/%s' % sub_id
 
     datasink = Node(DataSink(), name='datasink')
@@ -255,5 +296,6 @@ if __name__ == '__main__':
                                                                  ('mask', 'mask'),
                                                                  ('realigned_files', 'realigned_files'),
                                                                  ('mean', 'mean'),
-                                                                 ('reference', 'reference')])])
+                                                                 ('reference', 'reference'),
+                                                                 ('highpassed_files', 'highpassed_files')])])
     preproc.run()

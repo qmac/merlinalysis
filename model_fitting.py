@@ -65,8 +65,8 @@ def run_analysis(image_file, event_file, output_file, plot=False):
     # Load and crop
     img = check_niimg(image_file, ensure_ndim=4)
     img_data = img.get_data()
-    img_data = img_data[:, :, :, 17:]
-    img_data = img_data[:, :, :, 27:]
+    img_data = img_data[:, :, :, 17:]  # Initial scanner setup
+    img_data = img_data[:, :, :, 27:]  # Starting cartoon
     img_data = img_data[:, :, :, :975]
     print('Data matrix shape: ' + str(img_data.shape))
 

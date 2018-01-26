@@ -7,8 +7,8 @@ from nilearn._utils.niimg_conversions import check_niimg
 
 def variance_partition(d1, d2, comb):
     r_squared1 = np.sign(d1) * np.power(d1, 2)
-    r_squared2 = np.sign(d1) * np.power(d2, 2)
-    r_squared_comb = np.sign(d1) * np.power(comb, 2)
+    r_squared2 = np.sign(d2) * np.power(d2, 2)
+    r_squared_comb = np.sign(comb) * np.power(comb, 2)
     only_d1 = r_squared_comb - r_squared2
     only_d2 = r_squared_comb - r_squared1
     intersection = r_squared1 - only_d1
