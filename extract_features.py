@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 from pliers.converters import (IBMSpeechAPIConverter,
                                VideoToAudioConverter)
-from pliers.export import to_long_format
 from pliers.extractors import (GoogleVisionAPILabelExtractor,
                                GoogleVisionAPIFaceExtractor,
                                WordEmbeddingExtractor,
@@ -19,6 +18,28 @@ from pliers.stimuli import VideoStim, TextStim
 WORD2VEC_PATH = '/Users/quinnmac/Documents/00-Documents-Archive/College Senior Year/'\
                 'Semester 2/NLP/Final Project/GoogleNews-vectors-negative300.bin'
 TR = 1.5
+
+
+def to_long_format(df):
+    ''' Convert from wide to long format, making each row a single
+    feature/value pair.
+    Args:
+        df (DataFrame): a timeline that is currently in wide format
+    '''
+    if isinstance(df.columns, pd.core.index.MultiIndex):
+        ids = list(filter(lambda x: x[1] is '', df.columns))
+        variables = ['extractor', 'feature']
+    else:
+        df = df.reset_index() if not isinstance(
+            df.index, pd.Int64Index) else df
+        ids = list(set(df.columns) & set(['stim', 'onset', 'duration']))
+        variables = 'feature'
+
+    values = list(set(df.columns) - set(ids))
+    converted = pd.melt(df, id_vars=ids, value_vars=values, var_name=variables)
+    converted.columns = [
+        c[0] if isinstance(c, tuple) else c for c in converted.columns]
+    return converted
 
 
 def parse_p2fa(transcript_path):
@@ -54,7 +75,7 @@ def extract_audio_semantics(stims):
 
 def extract_image_labels(video, save_frames=False):
     # Sample frames at TR
-    frame_sampling_filter = FrameSamplingFilter(every=int(TR*video.fps))
+    frame_sampling_filter = FrameSamplingFilter(hertz=1)
     sampled_video = frame_sampling_filter.transform(video)
 
     if save_frames:
@@ -66,7 +87,7 @@ def extract_image_labels(video, save_frames=False):
     # Use a Vision API to extract object labels
     ext = GoogleVisionAPILabelExtractor(max_results=10)
     results = ext.transform(sampled_video)
-    res = merge_results(results, metadata=False)
+    res = merge_results(results, metadata=False, extractor_names='multi')
 
     # Clean and write out data
     res = res.fillna(0)
@@ -114,8 +135,7 @@ def extract_audio_energy(video):
     aud = VideoToAudioConverter().transform(video)
     frame_length = int(aud.sampling_rate*TR)
     ext = RMSEExtractor(frame_length=frame_length, hop_length=frame_length, center=False)
-    res = ext.transform(aud).to_res(metadata=False)
-    res = to_long_format(res)
+    res = ext.transform(aud).to_res(metadata=False, format='long')
     res['onset'] += TR
     res.rename(columns={'value': 'modulation', 'feature': 'trial_type'}, inplace=True)
     res.to_csv('events/audio_energy_events.csv')
@@ -126,21 +146,20 @@ def extract_brightness(video):
     sampled_video = frame_sampling_filter.transform(video)
     ext = BrightnessExtractor()
     res = ext.transform(sampled_video)
-    res = merge_results(res, metadata=False, flatten_columns=True)
-    res = to_long_format(res)
+    res = merge_results(res, metadata=False, flatten_columns=True, format='long')
     res.rename(columns={'value': 'modulation', 'feature': 'trial_type'}, inplace=True)
     res.to_csv('events/visual_brightness_events.csv')
 
 
 def extract_faces(video):
     # Sample frames at TR
-    frame_sampling_filter = FrameSamplingFilter(every=int(TR*video.fps))
+    frame_sampling_filter = FrameSamplingFilter(hertz=1)
     sampled_video = frame_sampling_filter.transform(video)
 
     # Use a Vision API to extract object labels
     ext = GoogleVisionAPIFaceExtractor()
     results = ext.transform(sampled_video)
-    res = merge_results(results, metadata=False, flatten_columns=True)
+    res = merge_results(results, metadata=False, flatten_columns=True, format='long')
 
     # Clean and write out data
     res = res.fillna(0)
@@ -150,7 +169,6 @@ def extract_faces(video):
         if col.startswith('Google'):
             cols.append(col)
     res = res.drop(cols, axis=1)
-    res = to_long_format(res)
     res.rename(columns={'value': 'modulation', 'feature': 'trial_type'}, inplace=True)
     res.to_csv('events/face_events.csv')
 
@@ -172,12 +190,12 @@ if __name__ == '__main__':
         sys.exit(0)
 
     video = VideoStim('stims/Merlin.mp4')
-    # extract_image_labels(video, save_frames=True)
+    # extract_image_labels(video, save_frames=False)
     # print('Done with label extraction')
-    # extract_visual_semantics('events/raw_visual_events.csv')
-    # print('Done with visual semantics extraction')
-    # extract_visual_objects('events/raw_visual_events.csv')
-    # print('Done with visual object extraction')
+    extract_visual_semantics('events/raw_visual_events.csv')
+    print('Done with visual semantics extraction')
+    extract_visual_objects('events/raw_visual_events.csv')
+    print('Done with visual object extraction')
     # extract_audio_semantics(parse_p2fa('stims/transcription/Merlin_trimmed.TextGrid'))
     # print('Done with audio semantics extraction')
     # extract_audio_energy(video)
