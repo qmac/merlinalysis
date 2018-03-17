@@ -58,6 +58,7 @@ def compute_rsquared(X, Y):
                                          chunklen=15,
                                          nchunks=10,
                                          use_corr=False)
+    corrs = np.sign(corrs) * np.power(corrs, 2)
     return wt, corrs
 
 
