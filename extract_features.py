@@ -104,6 +104,7 @@ def extract_image_labels(video, save_frames=False):
 
 def extract_visual_objects(visual_events):
     res = pd.DataFrame.from_csv(visual_events)
+    res = res.drop(['order', 'object_id'], axis=1)
     res = to_long_format(res)
     res.rename(columns={'value': 'modulation', 'feature': 'trial_type'}, inplace=True)
     res.to_csv('events/visual_object_events.csv')
@@ -113,7 +114,7 @@ def extract_visual_semantics(visual_events):
     res = pd.DataFrame.from_csv(visual_events)
     onsets = res['onset']
     durations = res['duration']
-    res = res.drop(['onset', 'duration'], axis=1)
+    res = res.drop(['onset', 'duration', 'order', 'object_id'], axis=1)
     words = res.apply(lambda x: list(res.columns[x.values.astype('bool')]), axis=1)
 
     texts = []
@@ -159,18 +160,15 @@ def extract_faces(video):
     # Use a Vision API to extract object labels
     ext = GoogleVisionAPIFaceExtractor()
     results = ext.transform(sampled_video)
-    res = merge_results(results, metadata=False, flatten_columns=True, format='long')
+    res = merge_results(results, metadata=False, format='long', extractor_names=False, object_id=False)
 
     # Clean and write out data
+    res = res[res['feature'] == 'face_detectionConfidence']
+    res = res.drop(['order'], axis=1)
     res = res.fillna(0)
-    res['face'] = res['GoogleVisionAPIFaceExtractor_face1_face_detectionConfidence']
-    cols = []
-    for col in res.columns:
-        if col.startswith('Google'):
-            cols.append(col)
-    res = res.drop(cols, axis=1)
+    res['value'] = np.round(res['value'])
     res.rename(columns={'value': 'modulation', 'feature': 'trial_type'}, inplace=True)
-    res.to_csv('events/face_events.csv')
+    res.to_csv('events/visual_face_events.csv')
 
 
 def extract_speech():
@@ -192,10 +190,10 @@ if __name__ == '__main__':
     video = VideoStim('stims/Merlin.mp4')
     # extract_image_labels(video, save_frames=False)
     # print('Done with label extraction')
-    extract_visual_semantics('events/raw_visual_events.csv')
-    print('Done with visual semantics extraction')
-    extract_visual_objects('events/raw_visual_events.csv')
-    print('Done with visual object extraction')
+    # extract_visual_semantics('events/raw_visual_events.csv')
+    # print('Done with visual semantics extraction')
+    # extract_visual_objects('events/raw_visual_events.csv')
+    # print('Done with visual object extraction')
     # extract_audio_semantics(parse_p2fa('stims/transcription/Merlin_trimmed.TextGrid'))
     # print('Done with audio semantics extraction')
     # extract_audio_energy(video)
