@@ -106,6 +106,8 @@ def extract_visual_objects(visual_events):
     res = pd.DataFrame.from_csv(visual_events)
     res = res.drop(['order', 'object_id'], axis=1)
     res = to_long_format(res)
+    # Slicing here to get rid of b''
+    res['feature'] = [v[2:-1] for v in res['feature']]
     res.rename(columns={'value': 'modulation', 'feature': 'trial_type'}, inplace=True)
     res.to_csv('events/visual_object_events.csv')
 
@@ -120,7 +122,8 @@ def extract_visual_semantics(visual_events):
     texts = []
     for tags, o, d in zip(words, onsets, durations):
         for w in tags:
-            texts.append(TextStim(text=w, onset=o, duration=d))
+            # Slicing here to get rid of b''
+            texts.append(TextStim(text=w[2:-1], onset=o, duration=d))
     ext = WordEmbeddingExtractor(WORD2VEC_PATH, binary=True)
     results = ext.transform(texts)
     res = merge_results(results, metadata=False, flatten_columns=True)
