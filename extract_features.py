@@ -10,6 +10,7 @@ from pliers.extractors import (GoogleVisionAPILabelExtractor,
                                WordEmbeddingExtractor,
                                RMSEExtractor,
                                BrightnessExtractor,
+                               STFTAudioExtractor,
                                merge_results)
 from pliers.filters import FrameSamplingFilter
 from pliers.stimuli import VideoStim, TextStim
@@ -139,7 +140,7 @@ def extract_audio_energy(video):
     aud = VideoToAudioConverter().transform(video)
     frame_length = int(aud.sampling_rate*TR)
     ext = RMSEExtractor(frame_length=frame_length, hop_length=frame_length, center=False)
-    res = ext.transform(aud).to_res(metadata=False, format='long')
+    res = ext.transform(aud).to_df(metadata=False, format='long')
     res['onset'] += TR
     res.rename(columns={'value': 'modulation', 'feature': 'trial_type'}, inplace=True)
     res.to_csv('events/audio_energy_events.csv')
@@ -185,6 +186,17 @@ def extract_speech():
     res.to_csv('events/speech_events.csv')
 
 
+def extract_spectrogram(video):
+    aud = VideoToAudioConverter().transform(video)
+    frame_length = TR
+    ext = STFTAudioExtractor(frame_size=frame_length, hop_size=frame_length, freq_bins=80)
+    spectrogram = ext.transform(aud)
+    res = spectrogram.to_df(metadata=False, format='long')
+    res['onset'] += TR
+    res.rename(columns={'value': 'modulation', 'feature': 'trial_type'}, inplace=True)
+    res.to_csv('events/audio_spectrogram_events.csv')
+
+
 if __name__ == '__main__':
     if len(sys.argv) != 1:
         print('Usage: python extract_features.py')
@@ -203,3 +215,4 @@ if __name__ == '__main__':
     # extract_speech()
     # extract_brightness(video)
     # extract_faces(video)
+    # extract_spectrogram(video)
