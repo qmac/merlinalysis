@@ -18,6 +18,7 @@ from pliers.stimuli import VideoStim, TextStim
 
 WORD2VEC_PATH = '/Users/quinnmac/Documents/00-Documents-Archive/College Senior Year/'\
                 'Semester 2/NLP/Final Project/GoogleNews-vectors-negative300.bin'
+GLOVE_PATH = '/Users/quinnmac/Documents/codenames/glove.6B/glove.6B.300d.txt.word2vec'
 TR = 1.5
 
 
@@ -72,6 +73,19 @@ def extract_audio_semantics(stims):
     res = to_long_format(res)
     res.rename(columns={'value': 'modulation', 'feature': 'trial_type'}, inplace=True)
     res.to_csv('events/audio_semantic_events.csv')
+
+
+def extract_audio_gloves(stims):
+    if isinstance(stims, VideoStim):
+        speech_text_converter = IBMSpeechAPIConverter()
+        stims = speech_text_converter.transform(stims)
+        stims.save('stims/transcription/ibm_transcript.txt')
+    ext = WordEmbeddingExtractor(GLOVE_PATH, binary=False)
+    results = ext.transform(stims)
+    res = merge_results(results, metadata=False, flatten_columns=True)
+    res = to_long_format(res)
+    res.rename(columns={'value': 'modulation', 'feature': 'trial_type'}, inplace=True)
+    res.to_csv('events/audio_glove_events.csv')
 
 
 def extract_image_labels(video, save_frames=False):
@@ -134,6 +148,29 @@ def extract_visual_semantics(visual_events):
     res = to_long_format(res)
     res.rename(columns={'value': 'modulation', 'feature': 'trial_type'}, inplace=True)
     res.to_csv('events/visual_semantic_events.csv')
+
+
+def extract_glove_semantics(visual_events):
+    res = pd.DataFrame.from_csv(visual_events)
+    onsets = res['onset']
+    durations = res['duration']
+    res = res.drop(['onset', 'duration', 'order', 'object_id'], axis=1)
+    words = res.apply(lambda x: list(res.columns[x.values.astype('bool')]), axis=1)
+
+    texts = []
+    for tags, o, d in zip(words, onsets, durations):
+        for w in tags:
+            # Slicing here to get rid of b''
+            texts.append(TextStim(text=w[2:-1], onset=o, duration=d))
+    ext = WordEmbeddingExtractor(GLOVE_PATH, binary=False)
+    results = ext.transform(texts)
+    res = merge_results(results, metadata=False, flatten_columns=True)
+    res = res.drop('duration', axis=1)
+    res = res.groupby('onset').sum().reset_index()
+    res['duration'] = durations
+    res = to_long_format(res)
+    res.rename(columns={'value': 'modulation', 'feature': 'trial_type'}, inplace=True)
+    res.to_csv('events/visual_glove_events.csv')
 
 
 def extract_audio_energy(video):
@@ -207,6 +244,10 @@ if __name__ == '__main__':
     # print('Done with label extraction')
     # extract_visual_semantics('events/raw_visual_events.csv')
     # print('Done with visual semantics extraction')
+    # extract_glove_semantics('events/raw_visual_events.csv')
+    # print('Done with visual glove semantics extraction')
+    # extract_audio_gloves(parse_p2fa('stims/transcription/Merlin_trimmed.TextGrid'))
+    # print('Done with audio glove semantics extraction')
     # extract_visual_objects('events/raw_visual_events.csv')
     # print('Done with visual object extraction')
     # extract_audio_semantics(parse_p2fa('stims/transcription/Merlin_trimmed.TextGrid'))
