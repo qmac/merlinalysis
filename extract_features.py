@@ -70,6 +70,7 @@ def extract_audio_semantics(stims):
     ext = WordEmbeddingExtractor(WORD2VEC_PATH, binary=True)
     results = ext.transform(stims)
     res = merge_results(results, metadata=False, flatten_columns=True)
+    res = res.drop(['object_id'], axis=1)
     res = to_long_format(res)
     res.rename(columns={'value': 'modulation', 'feature': 'trial_type'}, inplace=True)
     res.to_csv('events/audio_semantic_events.csv')
@@ -83,6 +84,7 @@ def extract_audio_gloves(stims):
     ext = WordEmbeddingExtractor(GLOVE_PATH, binary=False)
     results = ext.transform(stims)
     res = merge_results(results, metadata=False, flatten_columns=True)
+    res = res.drop(['object_id'], axis=1)
     res = to_long_format(res)
     res.rename(columns={'value': 'modulation', 'feature': 'trial_type'}, inplace=True)
     res.to_csv('events/audio_glove_events.csv')
@@ -145,6 +147,7 @@ def extract_visual_semantics(visual_events):
     res = res.drop('duration', axis=1)
     res = res.groupby('onset').sum().reset_index()
     res['duration'] = durations
+    res = res.drop(['object_id'], axis=1)
     res = to_long_format(res)
     res.rename(columns={'value': 'modulation', 'feature': 'trial_type'}, inplace=True)
     res.to_csv('events/visual_semantic_events.csv')
@@ -168,6 +171,7 @@ def extract_glove_semantics(visual_events):
     res = res.drop('duration', axis=1)
     res = res.groupby('onset').sum().reset_index()
     res['duration'] = durations
+    res = res.drop(['object_id'], axis=1)
     res = to_long_format(res)
     res.rename(columns={'value': 'modulation', 'feature': 'trial_type'}, inplace=True)
     res.to_csv('events/visual_glove_events.csv')
