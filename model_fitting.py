@@ -29,6 +29,7 @@ def get_design_matrix(event_file, n_scans):
     end_time = (n_scans - 1) * TR
     frame_times = np.linspace(start_time, end_time, n_scans)
     fir_delays = [1, 2, 3, 4]
+    events['modulation'] = events['modulation'].fillna(0)
     dm = make_design_matrix(frame_times, events, hrf_model='fir',
                             fir_delays=fir_delays, drift_model=None)
     dm = dm.drop('constant', axis=1)
@@ -62,7 +63,7 @@ def compute_rsquared(X, Y):
     return wt, corrs
 
 
-def run_analysis(image_file, event_file, output_file, plot=False):
+def run_analysis(image_file, event_file, output_file, mask_file=None, plot=False):
     # Load and crop
     img = check_niimg(image_file, ensure_ndim=4)
     img_data = img.get_data()
@@ -71,8 +72,15 @@ def run_analysis(image_file, event_file, output_file, plot=False):
     img_data = img_data[:, :, :, :975]
     print('Data matrix shape: ' + str(img_data.shape))
 
+    if mask_file:
+        mask = check_niimg(mask_file, ensure_ndim=3).get_data().astype(bool)
+        img_data = img_data[mask]
+        print('Masked data matrix shape: ' + str(img_data.shape))
+    else:
+        img_data = np.reshape(img_data, (245245, img_data.shape[3]))
+
     # Get design matrix from nistats
-    dm = get_design_matrix(event_file, img_data.shape[3])
+    dm = get_design_matrix(event_file, img_data.shape[1])
     print('Design matrix shape: ' + str(dm.shape))
 
     # Normalize data and design matrix
@@ -80,8 +88,7 @@ def run_analysis(image_file, event_file, output_file, plot=False):
     if plot:
         plt.plot(X)
         plt.show()
-    Y = np.reshape(img_data, (110592, img_data.shape[3]))
-    Y = zscore(Y).T
+    Y = zscore(img_data).T
     Y = detrend_data(Y)
     print('Reshaped data matrix: ' + str(Y.shape))
 
@@ -90,9 +97,13 @@ def run_analysis(image_file, event_file, output_file, plot=False):
     print('R squared matrix shape: ' + str(r_squared.shape))
 
     # Output results
-    r_squared[r_squared == 1.0] = 0.0
-    r_squared = np.reshape(r_squared, (64, 64, 27, 1))
-    r_squared_img = Nifti1Image(r_squared, affine=img.affine)
+    if mask_file:
+        output = np.zeros((65, 77, 49))
+        output[mask] = r_squared
+    else:
+        output = np.reshape(r_squared, (65, 77, 49))
+        output[output == 1.0] = 0.0
+    r_squared_img = Nifti1Image(output, affine=img.affine)
     r_squared_img.to_filename(output_file)
 
     if plot:
@@ -115,4 +126,8 @@ if __name__ == '__main__':
     image_file = sys.argv[1]
     event_file = sys.argv[2]
     output_file = sys.argv[3]
-    run_analysis(image_file, event_file, output_file, plot=False)
+    if len(sys.argv) == 5:
+        mask_file = sys.argv[4]
+    else:
+        mask_file = None
+    run_analysis(image_file, event_file, output_file, mask_file=mask_file, plot=False)
