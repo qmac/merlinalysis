@@ -11,13 +11,8 @@ from nistats.design_matrix import make_design_matrix
 
 from ridge.ridge import bootstrap_ridge
 from ridge.utils import zscore
-from detrend_sgolay import sgolay_filter_volume
 
 TR = 1.5
-
-
-def detrend_data(Y):
-    return sgolay_filter_volume(Y, filtlen=181, degree=3)
 
 
 def get_design_matrix(event_file, n_scans):
@@ -28,7 +23,7 @@ def get_design_matrix(event_file, n_scans):
     start_time = 0.0
     end_time = (n_scans - 1) * TR
     frame_times = np.linspace(start_time, end_time, n_scans)
-    fir_delays = [1, 2, 3, 4]
+    fir_delays = [1, 2, 3, 4, 5]
     events['modulation'] = events['modulation'].fillna(0)
     dm = make_design_matrix(frame_times, events, hrf_model='fir',
                             fir_delays=fir_delays, drift_model=None)
@@ -67,9 +62,6 @@ def run_analysis(image_file, event_file, output_file, mask_file=None, plot=False
     # Load and crop
     img = check_niimg(image_file, ensure_ndim=4)
     img_data = img.get_data()
-    img_data = img_data[:, :, :, 17:]  # Initial scanner setup
-    img_data = img_data[:, :, :, 27:]  # Starting cartoon
-    img_data = img_data[:, :, :, :975]
     print('Data matrix shape: ' + str(img_data.shape))
 
     if mask_file:
@@ -88,12 +80,9 @@ def run_analysis(image_file, event_file, output_file, mask_file=None, plot=False
     if plot:
         plt.plot(X)
         plt.show()
-    Y = zscore(img_data).T
-    Y = detrend_data(Y)
-    print('Reshaped data matrix: ' + str(Y.shape))
 
     # Fit and compute R squareds
-    weights, r_squared = compute_rsquared(X, Y)
+    weights, r_squared = compute_rsquared(X, img_data.T)
     print('R squared matrix shape: ' + str(r_squared.shape))
 
     # Output results
