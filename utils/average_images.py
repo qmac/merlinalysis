@@ -10,6 +10,7 @@ def average_images(files):
     for f in files:
         data = check_niimg(f).get_data()
         data = np.sqrt(np.abs(data)) * np.sign(data)  # convert back to R
+        data = np.nan_to_num(data)
         data = np.arctanh(data) # equivalent to Fisher R to Z transformation
         total += data
     avg = total / float(len(files))
