@@ -5,6 +5,9 @@ from nilearn._utils.niimg_conversions import check_niimg
 
 
 def variance_partition(d1, d2, comb):
+    d1 = np.maximum(d1, 0)
+    d2 = np.maximum(d2, 0)
+    comb = np.maxmimum(comb, 0)
     only_d1 = comb - d2
     only_d2 = comb - d1
     intersection = d1 - only_d1

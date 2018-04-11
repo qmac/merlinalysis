@@ -23,7 +23,7 @@ def get_design_matrix(event_file, n_scans):
     start_time = 0.0
     end_time = (n_scans - 1) * TR
     frame_times = np.linspace(start_time, end_time, n_scans)
-    fir_delays = [1, 2, 3, 4, 5]
+    fir_delays = [1, 2, 3, 4, 5, 6]
     events['modulation'] = events['modulation'].fillna(0)
     dm = make_design_matrix(frame_times, events, hrf_model='fir',
                             fir_delays=fir_delays, drift_model=None)
