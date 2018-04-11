@@ -8,7 +8,7 @@ from nilearn._utils.niimg_conversions import check_niimg
 def variance_partition(d1, d2, comb):
     d1 = np.maximum(d1, 0)
     d2 = np.maximum(d2, 0)
-    comb = np.maxmimum(comb, 0)
+    comb = np.maximum(comb, 0)
     only_d1 = comb - d2
     only_d2 = comb - d1
     intersection = d1 - only_d1
@@ -16,7 +16,8 @@ def variance_partition(d1, d2, comb):
 
 
 if __name__ == '__main__':
-    data1 = check_niimg(sys.argv[1]).get_data()
+    img = check_niimg(sys.argv[1])
+    data1 = img.get_data()
     data2 = check_niimg(sys.argv[2]).get_data()
     data_combined = check_niimg(sys.argv[3]).get_data()
     ex_data1, ex_data2, intersection = variance_partition(data1, data2, data_combined)
