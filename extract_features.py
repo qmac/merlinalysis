@@ -53,11 +53,12 @@ def parse_p2fa(transcript_path):
             if line == '\titem [2]:\n':
                 start_parse = True
             if start_parse and line.startswith('\t\t\ti'):
+                movie_offset = 40.5
                 onset = float(all_lines[i+1].split()[-1])
                 duration = float(all_lines[i+2].split()[-1]) - onset
                 text = str(all_lines[i+3].split()[-1])[1:-1].lower()
                 if not (text == 'sp'):
-                    texts.append(TextStim(text=text, onset=onset, duration=duration))
+                    texts.append(TextStim(text=text, onset=onset+movie_offset, duration=duration))
 
     return texts
 
