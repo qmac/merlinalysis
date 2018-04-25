@@ -52,7 +52,7 @@ def partition_data(X, Y):
     return X_train, X_test, Y_train, Y_test
 
 
-def run_single_subject(image_files, event_file, mask_file):
+def run_single_subject(image_file, event_file, mask_file):
     # Load imaging data
     mask = check_niimg(mask_file, ensure_ndim=3).get_data().astype(bool)
     print('Mask shape: ' + str(mask.shape))
@@ -60,7 +60,7 @@ def run_single_subject(image_files, event_file, mask_file):
 
     labels = np.around(get_labels(event_file, 975).as_matrix()).T[0]
 
-    img = check_niimg(image_files[0], ensure_ndim=4)
+    img = check_niimg(image_file, ensure_ndim=4)
     img_data = img.get_data()[mask]
     rolled = get_data_matrix(img_data)
     X_train, X_test, Y_train, Y_test = partition_data(rolled, labels)
@@ -109,11 +109,11 @@ def run_analysis(image_files, event_file, mask_file):
     print('Labels shape: ' + str(Y_train.shape))
 
     # Run classification
-    clf = LinearSVC(class_weight='balanced')
-    clf.fit(X_train, Y_train)
-    y_preds = clf.predict(X_test)
-    test_acc_score = accuracy_score(labels, y_preds)
-    print('Test accuracy score: ' + str(test_acc_score))
+    # clf = LinearSVC(class_weight='balanced')
+    # clf.fit(X_train, Y_train)
+    # y_preds = clf.predict(X_test)
+    # test_acc_score = accuracy_score(labels, y_preds)
+    # print('Test accuracy score: ' + str(test_acc_score))
     print('Random test: ' + str(labels.mean()))
 
     # Reduce dimensionality
@@ -123,7 +123,7 @@ def run_analysis(image_files, event_file, mask_file):
     print('Dimensionality reduced, new data shape: ' + str(X_train.shape))
 
     # Re-run classification
-    clf = LinearSVC(class_weight='balanced')
+    clf = LogisticRegression()
     clf.fit(X_train, Y_train)
     y_preds = clf.predict(X_test)
     test_acc_score = accuracy_score(labels, y_preds)
@@ -134,4 +134,5 @@ if __name__ == '__main__':
     event_file = sys.argv[1]
     mask_file = sys.argv[2]
     image_files = sys.argv[3:]
-    run_single_subject(image_files, event_file, mask_file)
+    run_analysis(image_files, event_file, mask_file)
+    # run_single_subject(image_files[0], event_file, mask_file)
