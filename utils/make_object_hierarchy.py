@@ -14,7 +14,7 @@ def add_tree_to_graph(G, tree):
         return name
 
 
-with open('../events/objects.txt', 'r') as f:
+with open('events/objects.txt', 'r') as f:
     objects = f.read().split(',')
 
 G = nx.Graph()
@@ -29,4 +29,4 @@ for obj in objects:
     assert name == synset.name()
 
 nx.draw_graphviz(G)
-nx.write_dot(G,'../events/object_semantic_graph.dot')
+nx.write_dot(G,'events/object_semantic_graph.dot')
