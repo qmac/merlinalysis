@@ -9,7 +9,7 @@ from nistats.design_matrix import make_design_matrix
 
 from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, roc_auc_score
 from sklearn.model_selection import cross_val_score
 from sklearn.svm import LinearSVC
 
@@ -20,6 +20,7 @@ def get_labels(event_file, n_scans):
     events = pd.read_csv(event_file, index_col=0)
     events = events[events['onset'] >= 40.5]
     events['onset'] -= 40.5
+    #events = events[events['trial_type'] == 'building']
     start_time = 0.0
     end_time = (n_scans - 1) * TR
     frame_times = np.linspace(start_time, end_time, n_scans)
@@ -79,8 +80,11 @@ def run_single_subject(image_file, event_file, mask_file):
     clf = LogisticRegression()
     clf.fit(X_train, Y_train)
     y_preds = clf.predict(X_test)
+    y_probs = clf.predict_proba(X_test)[:,1]
     test_acc_score = accuracy_score(Y_test, y_preds)
+    auc_score = roc_auc_score(Y_test, y_probs)
     print('Test accuracy score: ' + str(test_acc_score))
+    print('AUC score: ' + str(auc_score))
     print('Random test: ' + str(Y_test.mean()))
 
 def run_analysis(image_files, event_file, mask_file):
@@ -107,13 +111,6 @@ def run_analysis(image_files, event_file, mask_file):
     labels = np.around(get_labels(event_file, 975).as_matrix()).T[0]
     Y_train = np.concatenate([labels] * 10)#(len(image_files) - 1))
     print('Labels shape: ' + str(Y_train.shape))
-
-    # Run classification
-    # clf = LinearSVC(class_weight='balanced')
-    # clf.fit(X_train, Y_train)
-    # y_preds = clf.predict(X_test)
-    # test_acc_score = accuracy_score(labels, y_preds)
-    # print('Test accuracy score: ' + str(test_acc_score))
     print('Random test: ' + str(labels.mean()))
 
     # Reduce dimensionality
@@ -126,8 +123,11 @@ def run_analysis(image_files, event_file, mask_file):
     clf = LogisticRegression()
     clf.fit(X_train, Y_train)
     y_preds = clf.predict(X_test)
+    y_probs = clf.predict_proba(X_test)[:,1]
     test_acc_score = accuracy_score(labels, y_preds)
-    print('Dimension reduced test accuracy score: ' + str(test_acc_score))
+    auc_score = roc_auc_score(labels, y_probs)
+    print('Test accuracy score: ' + str(test_acc_score))
+    print('AUC score: ' + str(auc_score))
 
 
 if __name__ == '__main__':
