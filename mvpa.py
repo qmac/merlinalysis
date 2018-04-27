@@ -16,12 +16,13 @@ from sklearn.svm import LinearSVC
 TR = 1.5
 
 
-def get_labels(event_file, n_scans):
+def get_labels(event_file, n_scans, trial_type=None):
     events = pd.read_csv(event_file, index_col=0)
     events = events[events['onset'] >= 40.5]
     events['onset'] -= 40.5
     events = events.sort_values('onset').reset_index(drop=True)
-    events = events[events['trial_type'] == 'person.n.01']
+    if trial_type:
+        events = events[events['trial_type'] == trial_type]
     start_time = 0.0
     end_time = (n_scans - 1) * TR
     frame_times = np.linspace(start_time, end_time, n_scans)
@@ -54,13 +55,15 @@ def partition_data(X, Y):
     return X_train, X_test, Y_train, Y_test
 
 
-def run_single_subject(image_file, event_file, mask_file):
+def run_single_subject(image_file, event_file, mask_file, trial_type=None):
     # Load imaging data
     mask = check_niimg(mask_file, ensure_ndim=3).get_data().astype(bool)
     print('Mask shape: ' + str(mask.shape))
     print('Number of masked voxels: ' + str(np.sum(mask)))
 
-    labels = np.around(get_labels(event_file, 975).as_matrix()).T[0]
+    labels = np.around(get_labels(event_file, 975, trial_type=trial_type).as_matrix()).T[0]
+    if labels.sum() < 20:
+        raise ValueError('This label likely does not occur frequently enough')
 
     img = check_niimg(image_file, ensure_ndim=4)
     img_data = img.get_data()[mask]
@@ -87,6 +90,29 @@ def run_single_subject(image_file, event_file, mask_file):
     print('Test accuracy score: ' + str(test_acc_score))
     print('AUC score: ' + str(auc_score))
     print('Percentage of class 1: ' + str(Y_test.mean()))
+
+    return test_acc_score, auc_score
+
+def run_object_regression(image_file, event_file, mask_file):
+    events = pd.read_csv(event_file, index_col=0)
+    events = events[events['onset'] >= 40.5]
+    events['onset'] -= 40.5
+    object_labels = events['trial_type'].unique()
+    test_accuracies = []
+    test_aucs = []
+    num_successful = 0
+    for obj in object_labels:
+        print(obj)
+        try:
+            test_acc, auc = run_single_subject(image_file, event_file, mask_file, trial_type=obj)
+            test_accuracies.append(test_acc)
+            test_aucs.append(auc)
+            num_successful += 1
+        except:
+            print('Failed')
+    print('Average accuracy: ' + str(np.mean(test_accuracies)))
+    print('Average AUC: ' + str(np.mean(test_aucs)))
+    print('Successful: %d / %d = %f' % (num_successful, len(object_labels), num_successful / float(len(object_labels))))
 
 def run_analysis(image_files, event_file, mask_file):
     # Load imaging data
@@ -136,4 +162,6 @@ if __name__ == '__main__':
     mask_file = sys.argv[2]
     image_files = sys.argv[3:]
     # run_analysis(image_files, event_file, mask_file)
-    run_single_subject(image_files[0], event_file, mask_file)
+    # run_single_subject(image_files[0], event_file, mask_file)
+    print(image_files[0])
+    run_object_regression(image_files[0], event_file, mask_file)
