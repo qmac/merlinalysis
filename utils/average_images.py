@@ -40,4 +40,4 @@ if __name__ == '__main__':
     avg_nifti.to_filename(output_file)
     z_nifti = Nifti1Image(z_scores, affine=affine)
     z_path = os.path.dirname(output_file) + '/z_' + os.path.basename(output_file)
-    z_nifti.to_filename(z_path)
+    #z_nifti.to_filename(z_path)
