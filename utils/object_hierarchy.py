@@ -75,6 +75,7 @@ def convert_object_events(event_file, output_file, level):
         col:np.repeat(events[col].values, events[lst_col].str.len())
         for col in events.columns.difference([lst_col])
     }).assign(**{lst_col:np.concatenate(events[lst_col].values)})[events.columns.tolist()]
+    events = events.groupby(['onset', 'trial_type', 'duration']).max().reset_index()
     events.to_csv(output_file)
 
 if __name__ == '__main__':

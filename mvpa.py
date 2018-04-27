@@ -21,7 +21,7 @@ def get_labels(event_file, n_scans):
     events = events[events['onset'] >= 40.5]
     events['onset'] -= 40.5
     events = events.sort_values('onset').reset_index(drop=True)
-    events = events[events['trial_type'] == 'man.n.01']
+    events = events[events['trial_type'] == 'person.n.01']
     start_time = 0.0
     end_time = (n_scans - 1) * TR
     frame_times = np.linspace(start_time, end_time, n_scans)
@@ -86,7 +86,7 @@ def run_single_subject(image_file, event_file, mask_file):
     auc_score = roc_auc_score(Y_test, y_probs)
     print('Test accuracy score: ' + str(test_acc_score))
     print('AUC score: ' + str(auc_score))
-    print('Random test: ' + str(Y_test.mean()))
+    print('Percentage of class 1: ' + str(Y_test.mean()))
 
 def run_analysis(image_files, event_file, mask_file):
     # Load imaging data
@@ -112,7 +112,7 @@ def run_analysis(image_files, event_file, mask_file):
     labels = np.around(get_labels(event_file, 975).as_matrix()).T[0]
     Y_train = np.concatenate([labels] * 10)#(len(image_files) - 1))
     print('Labels shape: ' + str(Y_train.shape))
-    print('Random test: ' + str(labels.mean()))
+    print('Percentage of class 1: ' + str(labels.mean()))
 
     # Reduce dimensionality
     dim_red = SelectKBest(f_classif, k=1000)
