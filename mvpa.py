@@ -20,7 +20,8 @@ def get_labels(event_file, n_scans):
     events = pd.read_csv(event_file, index_col=0)
     events = events[events['onset'] >= 40.5]
     events['onset'] -= 40.5
-    #events = events[events['trial_type'] == 'building']
+    events = events.sort_values('onset').reset_index(drop=True)
+    events = events[events['trial_type'] == 'man.n.01']
     start_time = 0.0
     end_time = (n_scans - 1) * TR
     frame_times = np.linspace(start_time, end_time, n_scans)
@@ -134,5 +135,5 @@ if __name__ == '__main__':
     event_file = sys.argv[1]
     mask_file = sys.argv[2]
     image_files = sys.argv[3:]
-    run_analysis(image_files, event_file, mask_file)
-    # run_single_subject(image_files[0], event_file, mask_file)
+    # run_analysis(image_files, event_file, mask_file)
+    run_single_subject(image_files[0], event_file, mask_file)

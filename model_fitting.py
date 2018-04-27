@@ -19,6 +19,7 @@ def get_design_matrix(event_file, n_scans):
     events = pd.read_csv(event_file, index_col=0)
     events = events[events['onset'] >= 40.5]
     events['onset'] -= 40.5
+    events = events.sort_values('onset').reset_index(drop=True)
     print('Raw events shape: ' + str(events.shape))
     start_time = 0.0
     end_time = (n_scans - 1) * TR
