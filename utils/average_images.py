@@ -25,19 +25,26 @@ def average_images(files):
 
     std = np.std(all_data, axis=0)
     avg = np.mean(all_data, axis=0)
-    z_scores = avg / (1e-10 + std)
+    t_scores = avg / ((1e-10 + std) / np.sqrt(n))
     # avg = np.tanh(avg)  # convert from Z back to R
     # avg = np.sign(avg) * np.power(avg, 2)  # convert back to R^2
     # avg = 1 - (1 - avg) * ((n - 1) / (n - p - 1))  # adjuted R squared
-    return avg, z_scores
+    return avg, t_scores
 
 if __name__ == '__main__':
-    output_file = sys.argv[1]
-    image_files = sys.argv[2:]
-    avg_data, z_scores = average_images(image_files)
+    if sys.argv[1] == '-t':
+        t = True
+        output_file = sys.argv[2]
+        image_files = sys.argv[3:]
+    else:
+        t = False
+        output_file = sys.argv[1]
+        image_files = sys.argv[2:]
+    avg_data, t_scores = average_images(image_files)
     affine = check_niimg(image_files[0]).affine
     avg_nifti = Nifti1Image(avg_data, affine=affine)
     avg_nifti.to_filename(output_file)
-    z_nifti = Nifti1Image(z_scores, affine=affine)
-    z_path = os.path.dirname(output_file) + '/z_' + os.path.basename(output_file)
-    #z_nifti.to_filename(z_path)
+    if t:
+        t_nifti = Nifti1Image(t_scores, affine=affine)
+        t_path = os.path.dirname(output_file) + '/t_' + os.path.basename(output_file)
+        t_nifti.to_filename(t_path)
