@@ -32,18 +32,35 @@ def get_design_matrix(event_file, n_scans):
     return dm
 
 
-def partition_data(X, Y):
-    test_ranges = [(185, 215), (485, 515), (785, 815)]
-    delete_indices = []
-    test_indices = []
-    for r in test_ranges:
-        delete_indices += range(r[0] - 5, r[1] + 5)
-        test_indices += range(r[0], r[1])
-    X_train = np.delete(X, delete_indices, axis=0)
-    X_test = X[test_indices]
-    Y_train = np.delete(Y, delete_indices, axis=0)
-    Y_test = Y[test_indices]
-    return X_train, X_test, Y_train, Y_test
+def partition_data(X, Y, speech_only=False):
+    if speech_only:
+        speech_events = get_design_matrix('events/audio_speech_events.csv', 975)
+        speech_indices = (speech_events != 0).any(axis=1)
+        X = X[speech_indices.values]
+        Y = Y[speech_indices.values]
+        test_ranges = [(105, 135), (330, 360), (555, 585)]
+        delete_indices = []
+        test_indices = []
+        for r in test_ranges:
+            delete_indices += range(r[0] - 5, r[1] + 5)
+            test_indices += range(r[0], r[1])
+        X_train = np.delete(X, delete_indices, axis=0)
+        X_test = X[test_indices]
+        Y_train = np.delete(Y, delete_indices, axis=0)
+        Y_test = Y[test_indices]
+        return X_train, X_test, Y_train, Y_test
+    else:
+        test_ranges = [(185, 215), (485, 515), (785, 815)]
+        delete_indices = []
+        test_indices = []
+        for r in test_ranges:
+            delete_indices += range(r[0] - 5, r[1] + 5)
+            test_indices += range(r[0], r[1])
+        X_train = np.delete(X, delete_indices, axis=0)
+        X_test = X[test_indices]
+        Y_train = np.delete(Y, delete_indices, axis=0)
+        Y_test = Y[test_indices]
+        return X_train, X_test, Y_train, Y_test
 
 
 def compute_rsquared(X, Y):
@@ -95,21 +112,6 @@ def run_analysis(image_file, event_file, output_file, mask_file=None, plot=False
         output[output == 1.0] = 0.0
     r_squared_img = Nifti1Image(output, affine=img.affine)
     r_squared_img.to_filename(output_file)
-
-    if plot:
-        _, xt, _, yt = partition_data(X, Y)
-        aud_vox_xyz = (14, 23, 10)
-        aud_vox_idx = np.unravel_index(np.ravel_multi_index(aud_vox_xyz, (64, 64, 27)), (110592))
-        voxel_actual = yt.T[aud_vox_idx]
-        voxel_pred = np.dot(xt, weights).T[aud_vox_idx]
-        plt.plot(xt[:, 0], label='speech')
-        plt.plot(voxel_actual, label='actual')
-        plt.plot(voxel_pred, label='pred')
-        print(list(dm.columns))
-        print('Weights for auditory cortex voxel: ' + str(weights.T[aud_vox_idx]))
-        print(r_squared[aud_vox_xyz])
-        plt.legend()
-        plt.show()
 
 
 if __name__ == '__main__':
