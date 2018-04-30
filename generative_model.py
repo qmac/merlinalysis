@@ -47,7 +47,7 @@ def partition_data(X, Y):
     return X_train, X_test, Y_train, Y_test
 
 
-def run_analysis(image_file, event_file, output_file, mask_file=None):
+def run_analysis(image_file, event_file, mask_file=None):
     # Load and crop
     img = check_niimg(image_file, ensure_ndim=4)
     img_data = img.get_data()
@@ -77,8 +77,8 @@ def run_analysis(image_file, event_file, output_file, mask_file=None):
                                           nchunks=10,
                                           use_corr=False)
     
-    positive_activation = np.dot([[1]], weights)[0]
-    negative_activation = np.dot([[0]], weights)[0]
+    positive_activation = np.dot([X_test.max()], weights)
+    negative_activation = np.dot([X_test.min()], weights)
     predicted = []
     for sample in Y_test:
         corr_positive = np.correlate(positive_activation, sample)
@@ -93,9 +93,8 @@ def run_analysis(image_file, event_file, output_file, mask_file=None):
 if __name__ == '__main__':
     image_file = sys.argv[1]
     event_file = sys.argv[2]
-    output_file = sys.argv[3]
-    if len(sys.argv) == 5:
-        mask_file = sys.argv[4]
+    if len(sys.argv) == 4:
+        mask_file = sys.argv[3]
     else:
         mask_file = None
-    run_analysis(image_file, event_file, output_file, mask_file=mask_file)
+    run_analysis(image_file, event_file, mask_file=mask_file)
