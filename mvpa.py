@@ -16,6 +16,16 @@ from sklearn.svm import LinearSVC
 TR = 1.5
 
 
+def get_multiclass_labels(event_file):
+    events = pd.read_csv(event_file, index_col=0)
+    events = events[events['onset'] >= 40.5]
+    events['onset'] -= 40.5
+    events = events.sort_values('onset').reset_index(drop=True)
+    dm = events.drop(['onset', 'duration'], axis=1)
+    print(dm.shape)
+    return dm
+
+
 def get_labels(event_file, n_scans, trial_type=None):
     events = pd.read_csv(event_file, index_col=0)
     events = events[events['onset'] >= 40.5]
@@ -62,7 +72,7 @@ def run_single_subject(image_file, event_file, mask_file, trial_type=None):
     print('Number of masked voxels: ' + str(np.sum(mask)))
 
     labels = np.around(get_labels(event_file, 975, trial_type=trial_type).as_matrix()).T[0]
-    if (labels[185:215].sum() + labels[485:515].sum() + labels[785:815]) < 3:
+    if (labels[185:215].sum() + labels[485:515].sum() + labels[785:815].sum()) < 3:
         raise ValueError('This label does not occur frequently enough')
 
     img = check_niimg(image_file, ensure_ndim=4)
@@ -108,13 +118,13 @@ def run_object_regression(image_file, event_file, mask_file):
             test_accuracies.append(test_acc)
             test_aucs.append(auc)
             num_successful += 1
-        except:
+        except ValueError as e:
             print('Failed')
     print('Average accuracy: ' + str(np.mean(test_accuracies)))
     print('Average AUC: ' + str(np.mean(test_aucs)))
     print('Successful: %d / %d = %f' % (num_successful, len(object_labels), num_successful / float(len(object_labels))))
 
-def run_analysis(image_files, event_file, mask_file):
+def run_analysis(image_files, event_file, mask_file, multiclass=False):
     # Load imaging data
     mask = check_niimg(mask_file, ensure_ndim=3).get_data().astype(bool)
     print('Mask shape: ' + str(mask.shape))
@@ -135,10 +145,13 @@ def run_analysis(image_files, event_file, mask_file):
     print('Testing matrix: ' + str(X_test.shape))
 
     # Get labels
-    labels = np.around(get_labels(event_file, 975).as_matrix()).T[0]
+    if multiclass:
+        labels = get_multiclass_labels(event_file).as_matrix().T[0]
+    else:
+        labels = np.around(get_labels(event_file, 975).as_matrix()).T[0]
     Y_train = np.concatenate([labels] * 10)#(len(image_files) - 1))
     print('Labels shape: ' + str(Y_train.shape))
-    print('Percentage of class 1: ' + str(labels.mean()))
+    print('Percentage of class 1: ' + str(max(np.unique(labels, return_counts=True)[1]) / float(len(labels))))
 
     # Reduce dimensionality
     dim_red = SelectKBest(f_classif, k=1000)
@@ -150,17 +163,19 @@ def run_analysis(image_files, event_file, mask_file):
     clf = LogisticRegression()
     clf.fit(X_train, Y_train)
     y_preds = clf.predict(X_test)
-    y_probs = clf.predict_proba(X_test)[:,1]
     test_acc_score = accuracy_score(labels, y_preds)
-    auc_score = roc_auc_score(labels, y_probs)
     print('Test accuracy score: ' + str(test_acc_score))
-    print('AUC score: ' + str(auc_score))
+
+    if not multiclass:
+        y_probs = clf.predict_proba(X_test)[:,1]
+        auc_score = roc_auc_score(labels, y_probs)
+        print('AUC score: ' + str(auc_score))
 
 
 if __name__ == '__main__':
     event_file = sys.argv[1]
     mask_file = sys.argv[2]
     image_files = sys.argv[3:]
-    # run_analysis(image_files, event_file, mask_file)
+    run_analysis(image_files, event_file, mask_file)
     # run_single_subject(image_files[0], event_file, mask_file)
-    run_object_regression(image_files[0], event_file, mask_file)
+    # run_object_regression(image_files[0], event_file, mask_file)
