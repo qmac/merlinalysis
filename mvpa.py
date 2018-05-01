@@ -10,7 +10,7 @@ from nistats.design_matrix import make_design_matrix
 from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, roc_auc_score
-from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import cross_val_score, permutation_test_score
 from sklearn.svm import LinearSVC
 
 TR = 1.5
@@ -50,21 +50,24 @@ def get_data_matrix(data):
     return np.hstack(rolls)
 
 
-def partition_data(X, Y):
+def partition_indices():
     test_ranges = [(185, 215), (485, 515), (785, 815)]
     delete_indices = []
     test_indices = []
     for r in test_ranges:
         delete_indices += range(r[0] - 6, r[1] + 6)
         test_indices += range(r[0], r[1])
-    X_train = np.delete(X, delete_indices, axis=0)
-    X_test = X[test_indices]
-    Y_train = np.delete(Y, delete_indices, axis=0)
-    Y_test = Y[test_indices]
-    return X_train, X_test, Y_train, Y_test
+    train_indices = np.delete(range(975), delete_indices, axis=0)
+    return train_indices, test_indices
 
 
-def run_single_subject(image_file, event_file, mask_file, trial_type=None, multiclass=True):
+def partition_data(X, Y):
+    train_indices, test_indices = partition_indices()
+    return X[train_indices], X[test_indices], Y[train_indices], Y[test_indices]
+
+
+def run_single_subject(image_file, event_file, mask_file, trial_type=None,
+                       multiclass=False, permutation_test=False):
     # Load imaging data
     mask = check_niimg(mask_file, ensure_ndim=3).get_data().astype(bool)
     print('Mask shape: ' + str(mask.shape))
@@ -74,7 +77,7 @@ def run_single_subject(image_file, event_file, mask_file, trial_type=None, multi
         labels = get_multiclass_labels(event_file).as_matrix().T[0]
     else:
         labels = np.around(get_labels(event_file, 975, trial_type=trial_type).as_matrix()).T[0]
-        if (labels[185:215].sum() + labels[485:515].sum() + labels[785:815].sum()) < 3:
+        if (labels[partition_indices()[0]].sum()) < 3:
             raise ValueError('This label does not occur frequently enough')
 
     img = check_niimg(image_file, ensure_ndim=4)
@@ -98,7 +101,7 @@ def run_single_subject(image_file, event_file, mask_file, trial_type=None, multi
     y_preds = clf.predict(X_test)
     test_acc_score = accuracy_score(Y_test, y_preds)
     print('Test accuracy score: ' + str(test_acc_score))
-    print('Percentage of class 1: ' + str(max(np.unique(labels, return_counts=True)[1]) / float(len(labels))))
+    print('Percentage of class 1: ' + str(max(np.unique(Y_test, return_counts=True)[1]) / float(len(Y_test))))
 
     if not multiclass:
         y_probs = clf.predict_proba(X_test)[:,1]
@@ -106,6 +109,19 @@ def run_single_subject(image_file, event_file, mask_file, trial_type=None, multi
         print('AUC score: ' + str(auc_score))
     else:
         auc_score = 0
+
+    if permutation_test:
+        train_indices, test_indices = partition_indices()
+        custom_cv = [(train_indices, test_indices)]
+        X = np.zeros((975, 1000))
+        X[train_indices] = X_train
+        X[test_indices] = X_test
+        Y = np.zeros((975,))
+        Y[train_indices] = Y_train
+        Y[test_indices] = Y_test
+        clf = LogisticRegression()
+        score, perms, pval = permutation_test_score(clf, X, Y, cv=custom_cv, verbose=1)
+        print(score, perms.mean(), pval)
 
     return test_acc_score, auc_score
 
@@ -183,5 +199,5 @@ if __name__ == '__main__':
     mask_file = sys.argv[2]
     image_files = sys.argv[3:]
     # run_analysis(image_files, event_file, mask_file)
-    run_single_subject(image_files[0], event_file, mask_file)
+    run_single_subject(image_files[0], event_file, mask_file, permutation_test=True)
     # run_object_regression(image_files[0], event_file, mask_file)
