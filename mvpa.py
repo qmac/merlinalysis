@@ -62,8 +62,8 @@ def run_single_subject(image_file, event_file, mask_file, trial_type=None):
     print('Number of masked voxels: ' + str(np.sum(mask)))
 
     labels = np.around(get_labels(event_file, 975, trial_type=trial_type).as_matrix()).T[0]
-    if labels.sum() < 20:
-        raise ValueError('This label likely does not occur frequently enough')
+    if (labels[185:215].sum() + labels[485:515].sum() + labels[785:815]) < 3:
+        raise ValueError('This label does not occur frequently enough')
 
     img = check_niimg(image_file, ensure_ndim=4)
     img_data = img.get_data()[mask]
@@ -163,5 +163,4 @@ if __name__ == '__main__':
     image_files = sys.argv[3:]
     # run_analysis(image_files, event_file, mask_file)
     # run_single_subject(image_files[0], event_file, mask_file)
-    print(image_files[0])
     run_object_regression(image_files[0], event_file, mask_file)
