@@ -22,7 +22,6 @@ def get_multiclass_labels(event_file):
     events['onset'] -= 40.5
     events = events.sort_values('onset').reset_index(drop=True)
     dm = events.drop(['onset', 'duration'], axis=1)
-    print(dm.shape)
     return dm
 
 
@@ -65,15 +64,18 @@ def partition_data(X, Y):
     return X_train, X_test, Y_train, Y_test
 
 
-def run_single_subject(image_file, event_file, mask_file, trial_type=None):
+def run_single_subject(image_file, event_file, mask_file, trial_type=None, multiclass=True):
     # Load imaging data
     mask = check_niimg(mask_file, ensure_ndim=3).get_data().astype(bool)
     print('Mask shape: ' + str(mask.shape))
     print('Number of masked voxels: ' + str(np.sum(mask)))
 
-    labels = np.around(get_labels(event_file, 975, trial_type=trial_type).as_matrix()).T[0]
-    if (labels[185:215].sum() + labels[485:515].sum() + labels[785:815].sum()) < 3:
-        raise ValueError('This label does not occur frequently enough')
+    if multiclass:
+        labels = get_multiclass_labels(event_file).as_matrix().T[0]
+    else:
+        labels = np.around(get_labels(event_file, 975, trial_type=trial_type).as_matrix()).T[0]
+        if (labels[185:215].sum() + labels[485:515].sum() + labels[785:815].sum()) < 3:
+            raise ValueError('This label does not occur frequently enough')
 
     img = check_niimg(image_file, ensure_ndim=4)
     img_data = img.get_data()[mask]
@@ -94,12 +96,16 @@ def run_single_subject(image_file, event_file, mask_file, trial_type=None):
     clf = LogisticRegression()
     clf.fit(X_train, Y_train)
     y_preds = clf.predict(X_test)
-    y_probs = clf.predict_proba(X_test)[:,1]
     test_acc_score = accuracy_score(Y_test, y_preds)
-    auc_score = roc_auc_score(Y_test, y_probs)
     print('Test accuracy score: ' + str(test_acc_score))
-    print('AUC score: ' + str(auc_score))
-    print('Percentage of class 1: ' + str(Y_test.mean()))
+    print('Percentage of class 1: ' + str(max(np.unique(labels, return_counts=True)[1]) / float(len(labels))))
+
+    if not multiclass:
+        y_probs = clf.predict_proba(X_test)[:,1]
+        auc_score = roc_auc_score(Y_test, y_probs)
+        print('AUC score: ' + str(auc_score))
+    else:
+        auc_score = 0
 
     return test_acc_score, auc_score
 
@@ -176,6 +182,6 @@ if __name__ == '__main__':
     event_file = sys.argv[1]
     mask_file = sys.argv[2]
     image_files = sys.argv[3:]
-    run_analysis(image_files, event_file, mask_file)
-    # run_single_subject(image_files[0], event_file, mask_file)
+    # run_analysis(image_files, event_file, mask_file)
+    run_single_subject(image_files[0], event_file, mask_file)
     # run_object_regression(image_files[0], event_file, mask_file)
