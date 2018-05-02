@@ -9,7 +9,7 @@ from nistats.design_matrix import make_design_matrix
 
 from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, roc_auc_score
+from sklearn.metrics import accuracy_score, roc_auc_score, roc_curve, auc
 from sklearn.model_selection import cross_val_score, permutation_test_score
 from sklearn.svm import LinearSVC
 
@@ -77,7 +77,7 @@ def run_single_subject(image_file, event_file, mask_file, trial_type=None,
         labels = get_multiclass_labels(event_file).as_matrix().T[0]
     else:
         labels = np.around(get_labels(event_file, 975, trial_type=trial_type).as_matrix()).T[0]
-        if (labels[partition_indices()[0]].sum()) < 3:
+        if (labels[partition_indices()[1]].sum()) < 3:
             raise ValueError('This label does not occur frequently enough')
 
     img = check_niimg(image_file, ensure_ndim=4)
@@ -146,7 +146,7 @@ def run_object_regression(image_file, event_file, mask_file):
     print('Average AUC: ' + str(np.mean(test_aucs)))
     print('Successful: %d / %d = %f' % (num_successful, len(object_labels), num_successful / float(len(object_labels))))
 
-def run_analysis(image_files, event_file, mask_file, multiclass=False):
+def run_analysis(image_files, event_file, mask_file, multiclass=False, permutation_test=False):
     # Load imaging data
     mask = check_niimg(mask_file, ensure_ndim=3).get_data().astype(bool)
     print('Mask shape: ' + str(mask.shape))
@@ -193,11 +193,19 @@ def run_analysis(image_files, event_file, mask_file, multiclass=False):
         auc_score = roc_auc_score(labels, y_probs)
         print('AUC score: ' + str(auc_score))
 
+    if permutation_test:
+        custom_cv = [(range(9750), range(9750, 9750 + 975))]
+        X = np.concatenate([X_train, X_test])
+        Y = np.concatenate([Y_train, labels])
+        clf = LogisticRegression()
+        score, perms, pval = permutation_test_score(clf, X, Y, cv=custom_cv, verbose=1)
+        print(score, perms.mean(), pval)
+
 
 if __name__ == '__main__':
     event_file = sys.argv[1]
     mask_file = sys.argv[2]
     image_files = sys.argv[3:]
-    # run_analysis(image_files, event_file, mask_file)
-    run_single_subject(image_files[0], event_file, mask_file, permutation_test=True)
-    # run_object_regression(image_files[0], event_file, mask_file)
+    # run_analysis(image_files, event_file, mask_file, permutation_test=True)
+    # run_single_subject(image_files[0], event_file, mask_file, permutation_test=True)
+    run_object_regression(image_files[0], event_file, mask_file)
