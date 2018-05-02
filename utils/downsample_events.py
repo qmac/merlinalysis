@@ -37,4 +37,6 @@ if __name__ == '__main__':
     onsets = np.array(range(27, 1002)) * 1.5
     new_df['onset'] = onsets
     new_df['duration'] = 1.5
+    # new_df['modulation'] = new_df['trial_type']
+    # new_df['trial_type'] = 'face'
     new_df.to_csv(output_file)
