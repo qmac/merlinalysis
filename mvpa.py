@@ -3,6 +3,7 @@
 import sys
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 from nilearn._utils.niimg_conversions import check_niimg
 from nistats.design_matrix import make_design_matrix
@@ -67,7 +68,7 @@ def partition_data(X, Y):
 
 
 def run_single_subject(image_file, event_file, mask_file, trial_type=None,
-                       multiclass=False, permutation_test=False):
+                       multiclass=False, permutation_test=False, plot=False):
     # Load imaging data
     mask = check_niimg(mask_file, ensure_ndim=3).get_data().astype(bool)
     print('Mask shape: ' + str(mask.shape))
@@ -105,8 +106,17 @@ def run_single_subject(image_file, event_file, mask_file, trial_type=None,
 
     if not multiclass:
         y_probs = clf.predict_proba(X_test)[:,1]
-        auc_score = roc_auc_score(Y_test, y_probs)
+        fpr, tpr, _ = roc_curve(Y_test, y_probs)
+        auc_score = auc(fpr, tpr)
         print('AUC score: ' + str(auc_score))
+        if plot:
+            if trial_type == 'art.n.01':
+                plt.plot(fpr, tpr, color='darkorange')
+                with open('art_result.txt', 'w') as f:
+                    f.write(str(Y_test) + '\n')
+                    f.write(str(y_probs) + '\n')
+            else:
+                plt.plot(fpr, tpr, color='navy')
     else:
         auc_score = 0
 
@@ -125,7 +135,7 @@ def run_single_subject(image_file, event_file, mask_file, trial_type=None,
 
     return test_acc_score, auc_score
 
-def run_object_regression(image_file, event_file, mask_file):
+def run_object_regression(image_file, event_file, mask_file, plot=False):
     events = pd.read_csv(event_file, index_col=0)
     events = events[events['onset'] >= 40.5]
     events['onset'] -= 40.5
@@ -136,12 +146,12 @@ def run_object_regression(image_file, event_file, mask_file):
     for obj in object_labels:
         print(obj)
         try:
-            test_acc, auc = run_single_subject(image_file, event_file, mask_file, trial_type=obj)
+            test_acc, auc = run_single_subject(image_file, event_file, mask_file, trial_type=obj, plot=plot)
             test_accuracies.append(test_acc)
             test_aucs.append(auc)
             num_successful += 1
         except ValueError as e:
-            print('Failed')
+            print('Failed: ' + str(e))
     print('Average accuracy: ' + str(np.mean(test_accuracies)))
     print('Average AUC: ' + str(np.mean(test_aucs)))
     print('Successful: %d / %d = %f' % (num_successful, len(object_labels), num_successful / float(len(object_labels))))
@@ -209,3 +219,10 @@ if __name__ == '__main__':
     # run_analysis(image_files, event_file, mask_file, permutation_test=True)
     # run_single_subject(image_files[0], event_file, mask_file, permutation_test=True)
     run_object_regression(image_files[0], event_file, mask_file)
+    # plt.plot([0, 1], [0, 1], color='black', lw=2, linestyle='--')
+    # plt.xlim([0.0, 1.0])
+    # plt.ylim([0.0, 1.0])
+    # plt.xlabel('False Positive Rate')
+    # plt.ylabel('True Positive Rate')
+    # plt.title('Receiver operating characteristic')
+    # plt.show()
