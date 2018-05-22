@@ -1,5 +1,4 @@
 *.nii.gz
-*.sh
 *.png
 *.pyc
 events/

@@ -3,7 +3,6 @@ import numpy as np
 
 from nibabel import Nifti1Image
 from nilearn._utils.niimg_conversions import check_niimg
-from nistats.design_matrix import make_design_matrix
 
 from ridge.utils import zscore
 from detrend_sgolay import sgolay_filter_volume
@@ -13,6 +12,7 @@ TR = 1.5
 
 def detrend_data(Y):
     return sgolay_filter_volume(Y, filtlen=181, degree=3)
+
 
 def run_preprocessing(image_file, output_file):
     # Load and crop
