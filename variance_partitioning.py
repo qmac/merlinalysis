@@ -1,3 +1,7 @@
+'''
+Performs variance partitioning of two feature spaces.
+Requires results of each individual feature space as well as the combined.
+'''
 import sys
 import numpy as np
 
@@ -20,10 +24,10 @@ if __name__ == '__main__':
     data1 = img.get_data()
     data2 = check_niimg(sys.argv[2]).get_data()
     data_combined = check_niimg(sys.argv[3]).get_data()
-    ex_data1, ex_data2, intersection = variance_partition(data1, data2, data_combined)
-    ex_data1_img = Nifti1Image(ex_data1, affine=img.affine)
-    ex_data1_img.to_filename(sys.argv[4])
-    ex_data2_img = Nifti1Image(ex_data2, affine=img.affine)
-    ex_data2_img.to_filename(sys.argv[5])
+    ex1, ex2, intersection = variance_partition(data1, data2, data_combined)
+    ex1_img = Nifti1Image(ex1, affine=img.affine)
+    ex1_img.to_filename(sys.argv[4])
+    ex2_img = Nifti1Image(ex2, affine=img.affine)
+    ex2_img.to_filename(sys.argv[5])
     intersection_img = Nifti1Image(intersection, affine=img.affine)
     intersection_img.to_filename(sys.argv[6])

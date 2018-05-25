@@ -1,4 +1,4 @@
-
+''' Detrending code courtesy of Alex Huth '''
 
 def sgolay_filter_volume(vol, filtlen=121, degree=3):
     """Median filters the given volume [vol].  Pre-subtracts the mean, then adds it back.

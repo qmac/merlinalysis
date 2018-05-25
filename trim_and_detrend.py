@@ -1,3 +1,11 @@
+'''
+Additional preprocessing steps:
+    - Trim data
+        - Cut initial 17 TRs for scanner setup
+        - Cut 27 more for cartoon introduction
+        - Trim end to 975 total volumes
+    - Detrend data
+'''
 import sys
 import numpy as np
 
@@ -6,8 +14,6 @@ from nilearn._utils.niimg_conversions import check_niimg
 
 from ridge.utils import zscore
 from detrend_sgolay import sgolay_filter_volume
-
-TR = 1.5
 
 
 def detrend_data(Y):
