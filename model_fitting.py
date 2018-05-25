@@ -13,14 +13,19 @@ from ridge.ridge import bootstrap_ridge
 from ridge.utils import zscore
 
 TR = 1.5
+PLOT = False
 
 
 def get_design_matrix(event_file, n_scans):
     events = pd.read_csv(event_file, index_col=0)
+
+    # Align to trimmed functional data
     events = events[events['onset'] >= 40.5]
     events['onset'] -= 40.5
     events = events.sort_values('onset').reset_index(drop=True)
     print('Raw events shape: ' + str(events.shape))
+
+    # Resample and create FIR design matrix
     start_time = 0.0
     end_time = (n_scans - 1) * TR
     frame_times = np.linspace(start_time, end_time, n_scans)
@@ -32,35 +37,19 @@ def get_design_matrix(event_file, n_scans):
     return dm
 
 
-def partition_data(X, Y, speech_only=False):
-    if speech_only:
-        speech_events = get_design_matrix('events/audio_speech_events.csv', 975)
-        speech_indices = (speech_events != 0).any(axis=1)
-        X = X[speech_indices.values]
-        Y = Y[speech_indices.values]
-        test_ranges = [(105, 135), (330, 360), (555, 585)]
-        delete_indices = []
-        test_indices = []
-        for r in test_ranges:
-            delete_indices += range(r[0] - 5, r[1] + 5)
-            test_indices += range(r[0], r[1])
-        X_train = np.delete(X, delete_indices, axis=0)
-        X_test = X[test_indices]
-        Y_train = np.delete(Y, delete_indices, axis=0)
-        Y_test = Y[test_indices]
-        return X_train, X_test, Y_train, Y_test
-    else:
-        test_ranges = [(185, 215), (485, 515), (785, 815)]
-        delete_indices = []
-        test_indices = []
-        for r in test_ranges:
-            delete_indices += range(r[0] - 5, r[1] + 5)
-            test_indices += range(r[0], r[1])
-        X_train = np.delete(X, delete_indices, axis=0)
-        X_test = X[test_indices]
-        Y_train = np.delete(Y, delete_indices, axis=0)
-        Y_test = Y[test_indices]
-        return X_train, X_test, Y_train, Y_test
+def partition_data(X, Y):
+    # Select random chunks for test set, throw out surrounding TRs
+    test_ranges = [(185, 215), (485, 515), (785, 815)]
+    delete_indices = []
+    test_indices = []
+    for r in test_ranges:
+        delete_indices += range(r[0] - 5, r[1] + 5)
+        test_indices += range(r[0], r[1])
+    X_train = np.delete(X, delete_indices, axis=0)
+    X_test = X[test_indices]
+    Y_train = np.delete(Y, delete_indices, axis=0)
+    Y_test = Y[test_indices]
+    return X_train, X_test, Y_train, Y_test
 
 
 def compute_rsquared(X, Y):
@@ -72,16 +61,17 @@ def compute_rsquared(X, Y):
                                          chunklen=15,
                                          nchunks=10,
                                          use_corr=False)
-    corrs = np.sign(corrs) * np.power(corrs, 2)
+    corrs = np.sign(corrs) * np.power(corrs, 2)  # convert to R squared
     return wt, corrs
 
 
-def run_analysis(image_file, event_file, output_file, mask_file=None, plot=False):
-    # Load and crop
+def run_analysis(image_file, event_file, output_file, mask_file=None):
+    # Load functional data
     img = check_niimg(image_file, ensure_ndim=4)
     img_data = img.get_data()
     print('Data matrix shape: ' + str(img_data.shape))
 
+    # Apply mask if provided
     if mask_file:
         mask = check_niimg(mask_file, ensure_ndim=3).get_data().astype(bool)
         img_data = img_data[mask]
@@ -93,9 +83,9 @@ def run_analysis(image_file, event_file, output_file, mask_file=None, plot=False
     dm = get_design_matrix(event_file, img_data.shape[1])
     print('Design matrix shape: ' + str(dm.shape))
 
-    # Normalize data and design matrix
+    # Normalize design matrix (data normalized in preprocessing)
     X = zscore(dm.as_matrix().T).T
-    if plot:
+    if PLOT:
         plt.plot(X)
         plt.show()
 
@@ -122,4 +112,4 @@ if __name__ == '__main__':
         mask_file = sys.argv[4]
     else:
         mask_file = None
-    run_analysis(image_file, event_file, output_file, mask_file=mask_file, plot=False)
+    run_analysis(image_file, event_file, output_file, mask_file=mask_file)

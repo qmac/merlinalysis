@@ -1,4 +1,4 @@
-PARENT=/Volumes/MyPassport/merlin/results/fmriprep_nonhuman_correctconcat
+PARENT=/Volumes/MyPassport/merlin/results/cleaned_results
 mkdir $PARENT
 for SUB in sub-19 sub-20 sub-21 sub-22 sub-23 sub-24 sub-26 sub-27 sub-28 sub-29 sub-30 sub-31 sub-32 sub-33 sub-34 sub-35 sub-36
 do
