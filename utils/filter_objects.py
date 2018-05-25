@@ -1,16 +1,20 @@
+''' Filters objects in the provided events file according to a
+comma separated list in an allowed objects file. '''
 import sys
 import pandas as pd
 
-def filter_objects(allowed_file, output_file):
-    with open(allowed_file, 'r') as f:
-        allowed_objects = f.read().split(',')
-    
-    object_event_file = 'events/visual_object_events.csv'
-    events = pd.read_csv(object_event_file, index_col=0)
-    events = events[events['trial_type'].isin(allowed_objects)]
-    events.to_csv(output_file)
+
+def filter_objects(events, allowed_objs):
+    filtered = events[events['trial_type'].isin(allowed_objects)]
+    return filtered
+
 
 if __name__ == '__main__':
-    allowed_file = sys.argv[1]
-    output_file = sys.argv[2]
-    filter_objects(allowed_file, output_file)
+    events_file = sys.argv[1]
+    allowed_file = sys.argv[2]
+    with open(allowed_file, 'r') as f:
+        allowed_objects = f.read().split(',')
+
+    events = pd.read_csv(events_file, index_col=0)
+    events = filter_objects(events, allowed_objects)
+    events.to_csv(sys.argv[3])

@@ -54,21 +54,9 @@ python3 utils/average_images.py $PARENT/average/visual_semantic.nii.gz $PARENT/s
 python3 utils/average_images.py $PARENT/average/visual_object.nii.gz $PARENT/sub*/visual_object.nii.gz
 python3 utils/average_images.py $PARENT/average/visual_face.nii.gz $PARENT/sub*/visual_face.nii.gz
 python3 utils/average_images.py $PARENT/average/visual_nonhuman_object.nii.gz $PARENT/sub*/visual_nonhuman_object.nii.gz
-python3 utils/average_images.py -t $PARENT/average/energy_speech/energy.nii.gz $PARENT/sub*/energy_speech/energy.nii.gz
-python3 utils/average_images.py -t $PARENT/average/energy_speech/speech.nii.gz $PARENT/sub*/energy_speech/speech.nii.gz
 python3 utils/average_images.py $PARENT/average/energy_speech/intersection.nii.gz $PARENT/sub*/energy_speech/intersection.nii.gz
-python3 utils/average_images.py -t $PARENT/average/audsemantic_speech/semantic.nii.gz $PARENT/sub*/audsemantic_speech/semantic.nii.gz
-python3 utils/average_images.py -t $PARENT/average/audsemantic_speech/speech.nii.gz $PARENT/sub*/audsemantic_speech/speech.nii.gz
 python3 utils/average_images.py $PARENT/average/audsemantic_speech/intersection.nii.gz $PARENT/sub*/audsemantic_speech/intersection.nii.gz
-python3 utils/average_images.py -t $PARENT/average/visobj_visface/object.nii.gz $PARENT/sub*/visobj_visface/object.nii.gz
-python3 utils/average_images.py -t $PARENT/average/visobj_visface/face.nii.gz $PARENT/sub*/visobj_visface/face.nii.gz
 python3 utils/average_images.py $PARENT/average/visobj_visface/intersection.nii.gz $PARENT/sub*/visobj_visface/intersection.nii.gz
-python3 utils/average_images.py -t $PARENT/average/audio_visual_semantics/visual.nii.gz $PARENT/sub*/audio_visual_semantics/visual.nii.gz
-python3 utils/average_images.py -t $PARENT/average/audio_visual_semantics/audio.nii.gz $PARENT/sub*/audio_visual_semantics/audio.nii.gz
 python3 utils/average_images.py $PARENT/average/audio_visual_semantics/intersection.nii.gz $PARENT/sub*/audio_visual_semantics/intersection.nii.gz
-python3 utils/average_images.py -t $PARENT/average/visobj_audsem/visual.nii.gz $PARENT/sub*/visobj_audsem/visual.nii.gz
-python3 utils/average_images.py -t $PARENT/average/visobj_audsem/audio.nii.gz $PARENT/sub*/visobj_audsem/audio.nii.gz
 python3 utils/average_images.py $PARENT/average/visobj_audsem/intersection.nii.gz $PARENT/sub*/visobj_audsem/intersection.nii.gz
-python3 utils/average_images.py -t $PARENT/average/visobj_visnonhumobj/obj.nii.gz $PARENT/sub*/visobj_visnonhumobj/obj.nii.gz
-python3 utils/average_images.py -t $PARENT/average/visobj_visnonhumobj/nonhuman.nii.gz $PARENT/sub*/visobj_visnonhumobj/nonhuman.nii.gz
 python3 utils/average_images.py $PARENT/average/visobj_visnonhumobj/intersection.nii.gz $PARENT/sub*/visobj_visnonhumobj/intersection.nii.gz
